@@ -498,6 +498,13 @@ def periodify(X,Y,M):
     
     return X,Y,M
 
+def integ(a):
+    import numpy as np
+    from scipy import integrate
+    c = np.array([-integrate.simps(a[:i]) for i in np.arange(1,len(a)+1)])
+    c = c-c.mean()
+    return c
+
 def uv2psiphi(LON,LAT,U,V,ZBC='closed',MBC='closed',ALPHA=1.0e-14,fac=111195):
     """
     Compute streamfunction implementing 
@@ -565,8 +572,10 @@ def uv2psiphi(LON,LAT,U,V,ZBC='closed',MBC='closed',ALPHA=1.0e-14,fac=111195):
     u[mask] = 0
     v[mask] = 0
 
-    psin = -(-v_zonal_integration(v,np.gradient(lon)[1]*fac)+v_meridional_integration(u,np.gradient(lat)[0]*fac))
-    phin = -(v_zonal_integration(u,np.gradient(lon)[1]*fac)+v_meridional_integration(v,np.gradient(lat)[0]*fac))
+    psin = +np.array(list(map(integ,v*np.diff(lon[0]).mean()*fac)))-\
+            np.array(list(map(integ,u.T*np.diff(lat.T[0]).mean()*fac))).T
+    phin = -np.array(list(map(integ,u*np.diff(lon[0]).mean()*fac)))+\
+            np.array(list(map(integ,v.T*np.diff(lat.T[0]).mean()*fac))).T
 
 
     Um = (u[:,1:] + u[:,:-1]) / 2
