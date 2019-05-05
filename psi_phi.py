@@ -65,8 +65,8 @@ def psi_lietal(IPSI,IPHI,DX,DY,U,V,ZBC='closed',MBC='closed',ALPHA=1.0e-14):
     y = np.ones(2*M*N)*np.nan
 
     # Velocity y = (U11,U12,...,U31,U32,....,V11,V12,....)
-    y[:y.shape[0]/2] = U.reshape(M*N)
-    y[y.shape[0]/2:] = V.reshape(M*N)
+    y[:y.shape[0]//2] = U.reshape(M*N)
+    y[y.shape[0]//2:] = V.reshape(M*N)
 
     idata = ~np.isnan(y.copy())
     y = y[idata]
@@ -78,8 +78,8 @@ def psi_lietal(IPSI,IPHI,DX,DY,U,V,ZBC='closed',MBC='closed',ALPHA=1.0e-14):
     x = np.ones(2*M1*N1)*np.nan
 
     # PSI and PHI vector: x = (PSI11,PSI12,...,PSI31,PSI32,...,PHI11,PHI12,...)
-    x[:x.shape[0]/2] = IPSI.reshape(M1*N1)
-    x[x.shape[0]/2:] = IPHI.reshape(M1*N1)		
+    x[:x.shape[0]//2] = IPSI.reshape(M1*N1)
+    x[x.shape[0]//2:] = IPHI.reshape(M1*N1)		
 
 
     print('       Optimization process')
@@ -92,8 +92,8 @@ def psi_lietal(IPSI,IPHI,DX,DY,U,V,ZBC='closed',MBC='closed',ALPHA=1.0e-14):
     print('           Time for convergence: %1.2f min'%((t1-t0)/60.0))
     print('           F(x): %1.2f'%(pq.fun))		
 
-    psi = pq.x[:x.shape[0]/2].reshape((M1,N1))
-    phi = pq.x[x.shape[0]/2:].reshape((M1,N1))
+    psi = pq.x[:x.shape[0]//2].reshape((M1,N1))
+    phi = pq.x[x.shape[0]//2:].reshape((M1,N1))
 
     return psi,phi
 
@@ -186,8 +186,8 @@ def derive_ax(x,DX,DY,M1,N1,IDATA):
 
     # Organize the variables
     ax = np.ones(2*(M1-1)*(N1-1))*np.nan
-    ax[:ax.shape[0]/2] = u.reshape((M1-1)*(N1-1))
-    ax[ax.shape[0]/2:] = v.reshape((M1-1)*(N1-1))
+    ax[:ax.shape[0]//2] = u.reshape((M1-1)*(N1-1))
+    ax[ax.shape[0]//2:] = v.reshape((M1-1)*(N1-1))
 
     # Remove NaNs
     ax = ax[IDATA]
@@ -215,8 +215,8 @@ def derive_adj(e,DX,DY,M1,N1,ZBC,MBC,IDATA):
 
     ## Re-organize variables
     # Velocity
-    u = er[:er.shape[0]/2]
-    v = er[er.shape[0]/2:]	
+    u = er[:er.shape[0]//2]
+    v = er[er.shape[0]//2:]	
 
     u = u.reshape((M1-1,N1-1))
     v = v.reshape((M1-1,N1-1))
