@@ -598,8 +598,8 @@ def uv2psiphi(LON,LAT,U,V,ZBC='closed',MBC='closed',ALPHA=1.0e-14,fac=111195):
     unr[mask] = np.nan
     vnr[mask] = np.nan
     
-    s = psi.shape[0]//3
-    psi,und,vnd,phi,unr,vnr = [a[s:-s,s:-s] for a in [psi,und,vnd,phi,unr,vnr]]
+    l,m = psi.shape[0]//3,psi.shape[1]//3
+    psi,und,vnd,phi,unr,vnr = [a[l:-l,m:-m] for a in [psi,und,vnd,phi,unr,vnr]]
 
     return psi,und,vnd,phi,unr,vnr
 
