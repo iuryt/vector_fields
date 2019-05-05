@@ -505,7 +505,7 @@ def integ(a):
     c = c-c.mean()
     return c
 
-def uv2psiphi(LON,LAT,U,V,ZBC='closed',MBC='closed',ALPHA=1.0e-14,fac=111195):
+def uv2psiphi(LON,LAT,U,V,ZBC='closed',MBC='closed',ALPHA=1.0e-14,fac=111195,period=False):
     """
     Compute streamfunction implementing 
     Li et al. (2006) method. Its advantages consist in
@@ -564,8 +564,9 @@ def uv2psiphi(LON,LAT,U,V,ZBC='closed',MBC='closed',ALPHA=1.0e-14,fac=111195):
     lon = LON.copy()
     lat = LAT.copy()
     
-    lon,lat,u = periodify(LON,LAT,U)
-    _,_,v = periodify(LON,LAT,V)
+    if period:
+        lon,lat,u = periodify(LON,LAT,u)
+        _,_,v = periodify(LON,LAT,v)
     
     mask = np.isnan(u)
 
@@ -607,8 +608,9 @@ def uv2psiphi(LON,LAT,U,V,ZBC='closed',MBC='closed',ALPHA=1.0e-14,fac=111195):
     unr[mask] = np.nan
     vnr[mask] = np.nan
     
-    l,m = psi.shape[0]//3,psi.shape[1]//3
-    psi,und,vnd,phi,unr,vnr = [a[l:-l,m:-m] for a in [psi,und,vnd,phi,unr,vnr]]
+    if period:
+        l,m = psi.shape[0]//3,psi.shape[1]//3
+        psi,und,vnd,phi,unr,vnr = [a[l:-l,m:-m] for a in [psi,und,vnd,phi,unr,vnr]]
 
     return psi,und,vnd,phi,unr,vnr
 
