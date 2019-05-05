@@ -371,7 +371,7 @@ def v_zonal_integration(V,DX):
     ## Zonal integration	
     vi = np.zeros(v.shape)
 
-    for j in xrange(2,vi.shape[1]+1):
+    for j in range(2,vi.shape[1]+1):
         vi[:,-j] = np.trapz(v[:,-j:], dx=DX[:,(-j+1):])
 
     return vi
@@ -410,7 +410,7 @@ def v_meridional_integration(V,DY):
     ## Zonal integration	
     vi = np.zeros(v.shape)
 
-    for i in xrange(2,vi.shape[0]+1):
+    for i in range(2,vi.shape[0]+1):
         vi[-i,:] = np.trapz(v[-i:,:],dx=DY[(-i+1):,:],axis=0)
 
     return vi
@@ -480,8 +480,128 @@ def dy_from_dlat(lat):
 
     return dy
 
+def periodify(X,Y,M):
+    
+    import numpy as np
+    
+    M = np.hstack([M[:,::-1],M,M[:,::-1]])
+    M = np.vstack([M[::-1,:],M,M[::-1,:]])
+    
+    xr = X.max()-X.min()
+    yr = Y.max()-Y.min()
+    
+    X = np.hstack([X-xr,X,X+xr])
+    Y = np.vstack([Y-yr,Y,Y+yr])
+    
+    X = np.vstack([X,X,X])
+    Y = np.hstack([Y,Y,Y])
+    
+    return X,Y,M
+
+def uv2psiphi(LON,LAT,U,V,ZBC='closed',MBC='closed',ALPHA=1.0e-14,fac=111195):
+    """
+    Compute streamfunction implementing 
+    Li et al. (2006) method. Its advantages consist in
+    extract the non-divergent and non-rotational part 
+    of the flow without explicitly applying boundary 
+    conditions and computational efficiency.
+
+    This method also minimizes the difference between the
+    reconstructed and original velocity fields. Therefore 
+    it is ideal for large and non-regular domains with complex 
+    coastlines and islands.
+
+    Streamfunction and velocity potential are staggered with the 
+    velocity components.
+
+    Input:
+            LON   [M,N]      : Longitude
+            LAT   [M,N]      : Latitude
+            U    [M,N]  : Original zonal velocity field 
+            V    [M,N]  : Original meridional velocity field
+
+    Optional Input:
+            ZBC             : Zonal Boundary Condition for domain edge (closed or periodic)
+            MBC             : Meridional Boundary Condition for domain edge (closed or periodic)
+            ALPHA           : Regularization parameter
+            fac             : Distance of 1 degree in meters
+
+    Output:
+            psi     [M,N]: Streamfunction
+            Upsi    [M,N]  : Nondivergent zonal velocity field
+            Vpsi    [M,N]  : Nondivergent meridional velocity field
+            phi     [M,N]: Velocity Potential
+            Uphi    [M,N]  : Nonrotational zonal velocity field 
+            Vphi    [M,N]  : Nonrotational meridional velocity field
 
 
+    Obs1: PSI and PHI over land and boundaries have to be 0.0
+    for better performance. However U and V can be masked with 
+    NaNs 
+
+    Obs2: Definitions
+
+    U = dPsi/dy + dPhi/dx
+    V = -dPsi/dx + dPhi/dy 
+
+    Obs3: BCs are applied only to the Jacobian of the
+    minimization function and are referred to the edges
+    of the rectangular domain.  
+    """
+
+    ## Required packages
+    import numpy as np 
+    
+    u = U.copy()
+    v = V.copy()
+    lon = LON.copy()
+    lat = LAT.copy()
+    
+    lon,lat,u = periodify(LON,LAT,U)
+    _,_,v = periodify(LON,LAT,V)
+    
+    mask = np.isnan(u)
+
+    u[mask] = 0
+    v[mask] = 0
+
+    psin = -(-v_zonal_integration(v,np.gradient(lon)[1]*fac)+v_meridional_integration(u,np.gradient(lat)[0]*fac))
+    phin = -(v_zonal_integration(u,np.gradient(lon)[1]*fac)+v_meridional_integration(v,np.gradient(lat)[0]*fac))
+
+
+    Um = (u[:,1:] + u[:,:-1]) / 2
+    Um = (Um[1:,:] + Um[:-1,:]) / 2
+
+    Vm = (v[:,1:] + v[:,:-1]) / 2
+    Vm = (Vm[1:,:] + Vm[:-1,:]) / 2
+
+    psi,phi = psi_lietal(psin,phin,np.gradient(lon)[1]*fac,np.gradient(lat)[0]*fac,Um,Vm,ZBC=ZBC,MBC=MBC,ALPHA=ALPHA)
+
+    psi = -psi
+    phi = -phi
+
+    psi = psi-np.nanmean(psi)
+    phi = phi-np.nanmean(phi)
+
+    phiy,phix = np.gradient(phi)
+    psiy,psix = np.gradient(psi)
+
+    unr,vnr = -phix/(np.gradient(lon)[1]*fac),-phiy/(np.gradient(lat)[0]*fac)
+    und,vnd = -psiy/(np.gradient(lat)[0]*fac),psix/(np.gradient(lon)[1]*fac)
+
+
+    psi[mask] = np.nan
+    phi[mask] = np.nan
+
+    und[mask] = np.nan
+    vnd[mask] = np.nan
+    unr[mask] = np.nan
+    vnr[mask] = np.nan
+    
+    s = psi.shape[0]//3
+    psi,und,vnd,phi,unr,vnr = [a[s:-s,s:-s] for a in [psi,und,vnd,phi,unr,vnr]]
+
+    return psi,und,vnd,phi,unr,vnr
 
 
 
